@@ -17,17 +17,6 @@ clear
 clear
 }
 
-create_hostname() {
-clear
-echo 'Creating hostname.'
-{
-sub=$(</dev/urandom tr -dc a-z0-9 | head -c4)
-SUB_DOMAIN=${sub}.${DOMAIN}
-curl -X POST "https://api.cloudflare.com/client/v4/zones/${CF_ZONE}/dns_records" -H "X-Auth-Email: ${CF_ID}" -H "X-Auth-Key: ${CF_KEY}" -H "Content-Type: application/json" --data '{"type":"A","name":"'"${SUB_DOMAIN}"'","content":"'"${MYIP}"'","ttl":1,"priority":0,"proxied":false}' &>/dev/null
-echo "$SUB_DOMAIN" > /root/domain
-}
-}
-
 install_hysteria(){
 clear
 echo 'Installing hysteria.'
@@ -69,11 +58,12 @@ clear
 echo "Installing letsencrypt."
 {
 apt remove apache2 -y
+echo "$SUB_DOMAIN" > /root/domain
 domain=$(cat /root/domain)
 curl  https://get.acme.sh | sh
-~/.acme.sh/acme.sh --register-account -m ${CF_ID} --server zerossl
-~/.acme.sh/acme.sh --issue -d ${domain} --standalone -k ec-256
-~/.acme.sh/acme.sh --installcert -d ${domain} --fullchainpath /etc/hysteria/hysteria.crt --keypath /etc/hysteria/hysteria.key --ecc
+~/.acme.sh/acme.sh --register-account -m firenetdev@gmail.com --server zerossl
+~/.acme.sh/acme.sh --issue -d "${domain}" --standalone -k ec-256
+~/.acme.sh/acme.sh --installcert -d "${domain}" --fullchainpath /etc/hysteria/hysteria.crt --keypath /etc/hysteria/hysteria.key --ecc
 }
 }
 
@@ -106,9 +96,9 @@ clear
 echo 'Installing proxy.'
 {
 sudo apt install -y squid
-cd /etc/squid/
+cd /etc/squid/ || exit
 rm squid.conf
-echo "acl SSH dst `ip route get 8.8.8.8 | awk '/src/ {f=NR} f&&NR-1==f' RS=" "`" >> squid.conf
+echo "acl SSH dst $(ip route get 8.8.8.8 | awk '/src/ {f=NR} f&&NR-1==f' RS=" ")" >> squid.conf
 echo 'acl SSL_ports port 443
 acl Safe_ports port 80
 acl Safe_ports port 21
@@ -171,7 +161,7 @@ clear
 echo 'Starting..'
 {
 
-sudo crontab -l | { echo "7 0 * * * "/root/.acme.sh"/acme.sh --cron --home "/root/.acme.sh" > /dev/null"; } | crontab -
+sudo crontab -l | { echo "7 0 * * * /root/.acme.sh/acme.sh --cron --home /root/.acme.sh > /dev/null"; } | crontab -
 sudo systemctl restart cron
 } &>/dev/null
 clear
@@ -180,7 +170,7 @@ echo '*       HYSTERIA is ready!    *'
 echo '+++++++++++************+++++++++++'
 echo -e "[IP] : $server_ip\n[Hysteria Port] : 5666\n"
 history -c;
-rm /etc/.systemlink
+rm /root/.installer
 rm /root/install_server.sh
 echo 'Server will secure this server and reboot after 20 seconds'
 sleep 20
@@ -189,7 +179,6 @@ reboot
 
 install_require
 install_sudo  
-create_hostname
 install_hysteria
 install_letsencrypt
 install_firewall_kvm
