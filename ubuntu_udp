@@ -230,10 +230,6 @@ exit 0' >> /etc/rc.local
 start_service () {
 clear
 echo 'Starting..'
-{
-
-} &>/dev/null
-clear
 echo '++++++++++++++++++++++++++++++++++'
 echo '*       HYSTERIA is ready!    *'
 echo '+++++++++++************+++++++++++'
